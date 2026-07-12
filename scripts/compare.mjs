@@ -106,7 +106,7 @@ console.log('  ДОПОЛНИТЕЛЬНЫЕ ПОЛЯ sudrf.ru В ОБЩИХ ЗА
 console.log('─'.repeat(80));
 
 console.log('  Из ' + both.length + ' общих судов:');
-console.log('  с телефоном в sudrf: ' + overlap.filter(c => c.phone).length);
-console.log('  с email в sudrf:     ' + overlap.filter(c => c.email).length);
-console.log('  с ПСП в sudrf:      ' + overlap.filter(c => (c.addresses?.length||0) > 1).length);
-console.log('  с ИНН в CH2:         ' + overlap.filter(c => c.inn).length);
+console.log('  с телефоном в sudrf: ' + both.filter(c => c.phone).length);
+console.log('  с email в sudrf:     ' + both.filter(c => c.email).length);
+console.log('  с ПСП в sudrf:      ' + both.filter(c => (c.addresses?.length||0) > 1).length);
+console.log('  с ИНН в CH2:         ' + both.filter(c => c.inn).length);
