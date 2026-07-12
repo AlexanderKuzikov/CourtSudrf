@@ -17,7 +17,7 @@ import * as iconv from 'iconv-lite';
 
 import type { YaCoordData, YaInfoHtml } from '../types/sudrf.js';
 import type { CourtRecord } from './CourtRecord.js';
-import { extractRegionCode } from './CourtRecord.js';
+import { extractRegionCode, extractCourtType, getCourtTypeName } from './CourtRecord.js';
 
 const BASE_URL = 'https://sudrf.ru';
 const DEFAULT_DELAY_MS = 1500; // 1.5s между запросами
@@ -214,24 +214,15 @@ export class SudrfClient {
       });
     });
 
-    // Определяем тип суда по коду
-    const tt = vnkod.slice(2, 4);
-    const courtTypeMap: Record<string, string> = {
-      RS: 'районный суд',
-      OS: 'областной/краевой/верховный суд',
-      VS: 'верховный суд',
-      GV: 'гарнизонный военный суд',
-      OV: 'окружной военный суд',
-      AJ: 'апелляционный суд',
-      KJ: 'кассационный суд',
-      UD: 'судебный участок',
-    };
-    const courtType = courtTypeMap[tt] ?? 'прочие';
+    // Код типа суда из vnkod (RS из 59RS0014)
+    const typeCode = extractCourtType(vnkod);
+    const typeName = getCourtTypeName(typeCode);
 
     return {
       code: vnkod,
       name: info.courtName,
-      court_type: courtType,
+      court_type: typeCode,
+      court_type_name: typeName,
       address: addressParts[0] ?? '',
       legal_address: null,
       website: info.website || null,
@@ -240,6 +231,9 @@ export class SudrfClient {
       addresses: addresses.length > 0 ? addresses : undefined,
       phone: info.phone || undefined,
       email: info.email || undefined,
+      okato: null,
+      okmo: null,
+      okpo: null,
     };
   }
 

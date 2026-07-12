@@ -21,6 +21,7 @@ import { loadEnv } from './env.js';
 import { SudrfClient } from './core/SudrfClient.js';
 import type { YaCoordData } from './types/sudrf.js';
 import type { CourtRecord } from './core/CourtRecord.js';
+import { getCourtTypeName } from './core/CourtRecord.js';
 
 // Определяем __dirname для ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -56,15 +57,28 @@ function saveCoordCache(data: YaCoordData): void {
 /** Загружает список всех CourtRecord из courts.json */
 function loadCourts(): CourtRecord[] {
   if (existsSync(COURTS_JSON)) {
-    return JSON.parse(readFileSync(COURTS_JSON, 'utf-8'));
+    const raw = JSON.parse(readFileSync(COURTS_JSON, 'utf-8'));
+    // Поддерживаем оба формата: { meta, courts } и голый массив
+    if (Array.isArray(raw)) return raw;
+    if (raw.courts && Array.isArray(raw.courts)) return raw.courts;
+    return [];
   }
   return [];
 }
 
 /** Сохраняет все CourtRecord в courts.json и по префиксам */
 function saveCourts(records: CourtRecord[]): void {
-  // Единый файл
-  writeFileSync(COURTS_JSON, JSON.stringify(records, null, 2), 'utf-8');
+  // Единый файл — формат совместимый с CourtHarvest2: { meta, courts }
+  const output = {
+    meta: {
+      totalCourts: records.length,
+      timestamp: new Date().toISOString(),
+      phase: `sudrf-${new Date().toISOString().slice(0, 10)}`,
+      mode: 'sudrf',
+    },
+    courts: records,
+  };
+  writeFileSync(COURTS_JSON, JSON.stringify(output, null, 2), 'utf-8');
 
   // По префиксам
   const byPrefix = new Map<string, CourtRecord[]>();
@@ -208,10 +222,13 @@ program
       } else {
         // Если ya_info не дал результата, создаём запись из ya_coords
         if (entry) {
+          const typeCode = code.slice(2, 4);
+          const typeName = getCourtTypeName(typeCode);
           records.push({
             code,
             name: entry.name || code,
-            court_type: 'прочие',
+            court_type: typeCode,
+            court_type_name: typeName,
             address: entry.adress || '',
             legal_address: null,
             website: null,
@@ -219,6 +236,9 @@ program
             region_code: code.slice(0, 2),
             phone: undefined,
             email: undefined,
+            okato: null,
+            okmo: null,
+            okpo: null,
           });
           existingCodes.add(code);
           success++;
