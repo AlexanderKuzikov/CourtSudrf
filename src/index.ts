@@ -285,6 +285,52 @@ program
   });
 
 // ----------------------------------------------------------------
+// ms — парсинг мировых судей (MS)
+// ----------------------------------------------------------------
+program
+  .command('ms')
+  .description('Парсинг мировых судей (MS) из HTML go_ms_search')
+  .option('-f, --file <path>', 'Путь к локальному HTML-файлу (по умолчанию скачать с sudrf.ru)')
+  .action(async (options: { file?: string }) => {
+    mkdirSync(DATA_DIR, { recursive: true });
+    mkdirSync(PREFIXES_DIR, { recursive: true });
+
+    let html: string;
+    if (options.file) {
+      console.log(`[ms] Чтение файла ${options.file}...`);
+      html = readFileSync(options.file, 'utf-8');
+    } else {
+      console.log('[ms] Скачивание HTML go_ms_search...');
+      const client = new SudrfClient(0);
+      html = await client.fetchMsHtml();
+      // Сохраняем копию на диск
+      const savedPath = join(DATA_DIR, 'ms_courts.html');
+      writeFileSync(savedPath, html, 'utf-8');
+      console.log(`[ms] Сохранено в ${savedPath}`);
+    }
+
+    console.log('[ms] Парсинг HTML...');
+    const client = new SudrfClient(0);
+    const records = client.parseMsHtml(html);
+
+    // Загружаем существующие записи, чтобы не потерять федеральные
+    const existing = loadCourts();
+    const existingCodes = new Set(existing.map((r) => r.code));
+    const newRecords = records.filter((r) => !existingCodes.has(r.code));
+
+    console.log(`[ms] Всего MS: ${records.length}, новых: ${newRecords.length}`);
+
+    if (newRecords.length === 0) {
+      console.log('[ms] Новых записей нет');
+      return;
+    }
+
+    const merged = [...existing, ...newRecords];
+    saveCourts(merged);
+    console.log(`[ms] Готово. Всего записей: ${merged.length}`);
+  });
+
+// ----------------------------------------------------------------
 // regions — вывод списка регионов
 // ----------------------------------------------------------------
 program

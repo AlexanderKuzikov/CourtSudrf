@@ -241,4 +241,82 @@ export class SudrfClient {
   getCourtCodes(data: YaCoordData): string[] {
     return Object.keys(data).sort();
   }
+
+  /**
+   * Скачивает HTML со списком мировых судей (MS) через go_ms_search.
+   */
+  async fetchMsHtml(): Promise<string> {
+    const resp = await this.http.get('/index.php', {
+      params: {
+        id: 300,
+        act: 'go_ms_search',
+        searchtype: 'ms',
+        var: 'true',
+        ms_type: 'ms',
+        court_subj: 0,
+      },
+      responseType: 'arraybuffer',
+    });
+    return this.decode(resp.data);
+  }
+
+  /**
+   * Парсит HTML go_ms_search в массив CourtRecord.
+   *
+   * Структура:
+   *   <TR><TD>
+   *     <a onclick='listcontrol(N,"CODE");'>НАЗВАНИЕ</a>
+   *     <div class='courtInfoCont' id='mir_N'>
+   *       <div class='sud_ter_name'>РЕГИОН</div>
+   *       <b>Классификационный код:</b> CODE
+   *       <b>Официальный сайт:</b><br>
+   *       &nbsp;&nbsp;&nbsp;<a href='SITE'>SITE</a>
+   *     </div>
+   *   </TD></TR>
+   */
+  parseMsHtml(html: string): CourtRecord[] {
+    const records: CourtRecord[] = [];
+
+    // Разбиваем по TR
+    const trRe = /<TR><TD>.*?<\/TD><\/TR>/gs;
+    let trMatch: RegExpExecArray | null;
+
+    while ((trMatch = trRe.exec(html)) !== null) {
+      const block = trMatch[0];
+
+      // Извлекаем код и название из onclick
+      const onclickRe = /onclick='[^']*"([^"]+)"[^']*'>([^<]+)<\/a>/;
+      const onclickMatch = block.match(onclickRe);
+      if (!onclickMatch) continue;
+      const code = onclickMatch[1];
+      const name = onclickMatch[2].trim();
+
+      // Извлекаем сайт
+      const siteRe = /<a[^>]*href='([^']+)'[^>]*>/;
+      const siteMatch = block.match(siteRe);
+      const website = siteMatch ? siteMatch[1] : '';
+
+      const typeCode = extractCourtType(code);
+      const typeName = getCourtTypeName(typeCode);
+
+      records.push({
+        code,
+        name,
+        court_type: typeCode,
+        court_type_name: typeName,
+        address: '',
+        legal_address: null,
+        website: website || null,
+        inn: null,
+        region_code: extractRegionCode(code),
+        phone: undefined,
+        email: undefined,
+        okato: null,
+        okmo: null,
+        okpo: null,
+      });
+    }
+
+    return records;
+  }
 }
