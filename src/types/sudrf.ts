@@ -32,11 +32,3 @@ export interface YaInfoHtml {
   /** Официальный сайт */
   website: string;
 }
-
-/** Параметры региона */
-export interface RegionInfo {
-  /** Код региона (59) */
-  code: string;
-  /** Название региона */
-  name: string;
-}

@@ -46,11 +46,6 @@ export function extractRegionCode(code: string): string {
   return code.slice(0, 2);
 }
 
-/** Извлекает префикс (первые 4 символа: RRTT) */
-export function extractPrefix(code: string): string {
-  return code.slice(0, 4);
-}
-
 /**
  * Маппинг кодов типов → русские названия.
  * Обратный: код извлекается из 3-4 символов кода суда.

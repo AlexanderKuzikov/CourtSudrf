@@ -210,7 +210,8 @@ export class SudrfClient {
       addresses.push({
         type: i === 0 && !isPsp ? 'main' : 'psp',
         address: addr,
-        phone: i === 0 ? info.phone : undefined,
+        // Телефон на все адреса (парсинг с привязкой к конкретному ПСП — в разработке)
+        phone: info.phone || undefined,
       });
     });
 
@@ -235,11 +236,6 @@ export class SudrfClient {
       okmo: null,
       okpo: null,
     };
-  }
-
-  /** Возвращает список кодов судов из YaCoordData */
-  getCourtCodes(data: YaCoordData): string[] {
-    return Object.keys(data).sort();
   }
 
   /**
@@ -274,7 +270,7 @@ export class SudrfClient {
    *     </div>
    *   </TD></TR>
    */
-  parseMsHtml(html: string): CourtRecord[] {
+  static parseMsHtml(html: string): CourtRecord[] {
     const records: CourtRecord[] = [];
 
     // Разбиваем по TR
@@ -291,8 +287,8 @@ export class SudrfClient {
       const code = onclickMatch[1];
       const name = onclickMatch[2].trim();
 
-      // Извлекаем сайт
-      const siteRe = /<a[^>]*href='([^']+)'[^>]*>/;
+      // Извлекаем сайт (ищем ссылку внутри courtInfoCont, не первую попавшуюся)
+      const siteRe = /<a\s+(?:target='_blank'\s+)?href='(https?:\/\/[^']+)'/;
       const siteMatch = block.match(siteRe);
       const website = siteMatch ? siteMatch[1] : '';
 
